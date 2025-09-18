@@ -3,8 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Plugin } from './schemas/plugin.schema';
 import { WorkflowExecution } from './schemas/workflow-execution.schema';
-import { ModelUsage } from './schemas/model-usage.schema';
-import { CanvasContent } from './schemas/canvas-content.schema';
+import { ModelUsage, ModelUsageModel } from './schemas/model-usage.schema';
+import { CanvasContent, CanvasContentModel } from './schemas/canvas-content.schema';
 
 /**
  * Database service providing MongoDB operations
@@ -17,8 +17,8 @@ export class DatabaseService {
   constructor(
     @InjectModel(Plugin.name) private pluginModel: Model<Plugin>,
     @InjectModel(WorkflowExecution.name) private workflowExecutionModel: Model<WorkflowExecution>,
-    @InjectModel(ModelUsage.name) private modelUsageModel: Model<ModelUsage>,
-    @InjectModel(CanvasContent.name) private canvasContentModel: Model<CanvasContent>,
+    @InjectModel(ModelUsage.name) private modelUsageModel: ModelUsageModel,
+    @InjectModel(CanvasContent.name) private canvasContentModel: CanvasContentModel,
   ) {
     this.logger.log('Database Service initialized with MongoDB');
   }
@@ -324,17 +324,17 @@ export class DatabaseService {
   // Database Health and Maintenance
   async getCollectionStats() {
     const stats = await Promise.all([
-      this.pluginModel.collection.stats(),
-      this.workflowExecutionModel.collection.stats(),
-      this.modelUsageModel.collection.stats(),
-      this.canvasContentModel.collection.stats()
+      this.pluginModel.collection.countDocuments(),
+      this.workflowExecutionModel.collection.countDocuments(),
+      this.modelUsageModel.collection.countDocuments(),
+      this.canvasContentModel.collection.countDocuments()
     ]);
 
     return {
-      plugins: stats[0],
-      workflowExecutions: stats[1],
-      modelUsage: stats[2],
-      canvasContent: stats[3]
+      plugins: { count: stats[0] },
+      workflowExecutions: { count: stats[1] },
+      modelUsage: { count: stats[2] },
+      canvasContent: { count: stats[3] }
     };
   }
 

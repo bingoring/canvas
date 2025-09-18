@@ -8,7 +8,13 @@ import { Document, Types } from 'mongoose';
 @Schema({ timestamps: true, collection: 'workflow_executions' })
 export class WorkflowExecution extends Document {
   @Prop({ required: true, unique: true, index: true })
+  id: string;
+
+  @Prop({ required: true, unique: true, index: true })
   executionId: string;
+
+  @Prop({ required: true, index: true })
+  workflowId: string;
 
   @Prop({ required: true, index: true })
   workflowType: string;
@@ -25,7 +31,7 @@ export class WorkflowExecution extends Document {
     default: 'pending',
     index: true
   })
-  status: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
 
   @Prop({ required: true })
   startTime: Date;
@@ -44,6 +50,12 @@ export class WorkflowExecution extends Document {
 
   @Prop({ type: Object, default: {} })
   state: Record<string, any>;
+
+  @Prop()
+  currentNode?: string;
+
+  @Prop({ type: [String], default: [] })
+  executedNodes: string[];
 
   @Prop({ type: [Object], default: [] })
   steps: {
@@ -76,15 +88,39 @@ export class WorkflowExecution extends Document {
   totalCost: number;
 
   @Prop({ type: [Object], default: [] })
-  errors: {
-    step?: string;
-    agentId?: string;
+  executionErrors: {
+    nodeId: string;
     message: string;
     code: string;
     timestamp: Date;
     recoverable: boolean;
+    attempts: number;
     stack?: string;
   }[];
+
+  @Prop({ type: Object, default: {} })
+  metrics: {
+    totalCost: number;
+    nodeMetrics: Record<string, {
+      duration: number;
+      cost: number;
+      success: boolean;
+      attempts: number;
+      inputSize: number;
+      outputSize: number;
+    }>;
+    performance: {
+      totalDuration: number;
+      avgNodeDuration: number;
+      slowestNode: string;
+      fastestNode: string;
+    };
+    resources: {
+      tokensUsed: number;
+      imagesGenerated: number;
+      embeddingsCreated: number;
+    };
+  };
 
   @Prop({ type: [Object], default: [] })
   warnings: {

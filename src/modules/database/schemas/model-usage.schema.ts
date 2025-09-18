@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Model } from 'mongoose';
 
 /**
  * Model usage tracking for cost optimization and analytics
@@ -209,3 +209,10 @@ ModelUsageSchema.statics.getModelPopularity = function(days: number = 30) {
     }
   ]);
 };
+
+// Define interface for static methods
+export interface ModelUsageModel extends Model<ModelUsage> {
+  getDailyCostByUser(userId: string, date: Date): Promise<any>;
+  getMonthlyCostByUser(userId: string, year: number, month: number): Promise<any>;
+  getModelPopularity(days?: number): Promise<any>;
+}

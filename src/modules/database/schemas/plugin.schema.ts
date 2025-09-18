@@ -88,7 +88,7 @@ export class Plugin extends Document {
   }[];
 
   @Prop({ type: [Object], default: [] })
-  errors: {
+  pluginErrors: {
     type: string;
     message: string;
     timestamp: Date;
@@ -102,7 +102,7 @@ export class Plugin extends Document {
   }
 
   get hasErrors(): boolean {
-    return this.errors && this.errors.length > 0;
+    return this.pluginErrors && this.pluginErrors.length > 0;
   }
 }
 
@@ -120,7 +120,7 @@ PluginSchema.virtual('isEnabled').get(function() {
 });
 
 PluginSchema.virtual('hasErrors').get(function() {
-  return this.errors && this.errors.length > 0;
+  return this.pluginErrors && this.pluginErrors.length > 0;
 });
 
 // Add instance methods

@@ -1,11 +1,24 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Model } from 'mongoose';
+
+export interface CanvasContentDocument extends Document {
+  createdAt: Date;
+  updatedAt: Date;
+  addView(): Promise<this>;
+  addLike(): Promise<this>;
+  addDownload(): Promise<this>;
+  softDelete(): Promise<this>;
+}
 
 /**
  * Canvas content storage for image generation results and metadata
  */
 @Schema({ timestamps: true, collection: 'canvas_content' })
-export class CanvasContent extends Document {
+export class CanvasContent extends Document implements CanvasContentDocument {
+  // Timestamps managed by Mongoose
+  createdAt: Date;
+  updatedAt: Date;
+
   @Prop({ required: true, unique: true, index: true })
   contentId: string;
 
@@ -185,9 +198,38 @@ export class CanvasContent extends Document {
   get variationCount(): number {
     return this.variations.length;
   }
+
+  // Method implementations for interface compliance
+  addView(): Promise<this> {
+    this.views += 1;
+    return this.save();
+  }
+
+  addLike(): Promise<this> {
+    this.likes += 1;
+    return this.save();
+  }
+
+  addDownload(): Promise<this> {
+    this.downloads += 1;
+    return this.save();
+  }
+
+  softDelete(): Promise<this> {
+    this.status = 'deleted';
+    this.deletedAt = new Date();
+    return this.save();
+  }
 }
 
 export const CanvasContentSchema = SchemaFactory.createForClass(CanvasContent);
+
+// Define interface for static methods extending Model
+export interface CanvasContentModel extends Model<CanvasContent> {
+  getPopularContent(limit?: number, days?: number): Promise<any>;
+  getTrendingStyles(days?: number): Promise<any>;
+  getUserContentStats(userId: string): Promise<any>;
+}
 
 // Add indexes for performance
 CanvasContentSchema.index({ contentId: 1 });
