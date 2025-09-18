@@ -1,0 +1,84 @@
+# OpenSearch configuration for Canvas AI Orchestration Platform
+
+cluster.name: canvas-cluster
+node.name: canvas-node
+
+# Network settings
+network.host: 0.0.0.0
+http.port: 9200
+transport.tcp.port: 9300
+
+# Discovery settings
+discovery.type: single-node
+cluster.initial_master_nodes: ["canvas-node"]
+
+# Path settings
+path.data: /usr/share/opensearch/data
+path.logs: /usr/share/opensearch/logs
+
+# Memory settings
+bootstrap.memory_lock: true
+
+# Security settings
+plugins.security.ssl.transport.pemcert_filepath: esnode.pem
+plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: esnode.pem
+plugins.security.ssl.http.pemkey_filepath: esnode-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem
+plugins.security.allow_unsafe_democertificates: true
+plugins.security.allow_default_init_securityindex: true
+plugins.security.authcz.admin_dn:
+  - CN=kirk,OU=client,O=client,L=test, C=de
+
+plugins.security.audit.type: internal_opensearch
+plugins.security.enable_snapshot_restore_privilege: true
+plugins.security.check_snapshot_restore_write_privileges: true
+plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices:
+  [
+    ".opendistro-alerting-config",
+    ".opendistro-alerting-alert*",
+    ".opendistro-anomaly-results*",
+    ".opendistro-anomaly-detector*",
+    ".opendistro-anomaly-checkpoints",
+    ".opendistro-anomaly-detection-state",
+    ".opendistro-reports-*",
+    ".opendistro-notifications-*",
+    ".opendistro-notebooks",
+    ".opendistro-asynchronous-search-response*"
+  ]
+
+# Performance settings
+indices.query.bool.max_clause_count: 10000
+search.max_buckets: 100000
+
+# Custom settings for Canvas AI platform
+indices.fielddata.cache.size: 20%
+indices.breaker.fielddata.limit: 40%
+indices.breaker.request.limit: 40%
+indices.breaker.total.limit: 70%
+
+# Vector search settings (for AI embeddings)
+knn.algo_param.ef_search: 512
+knn.algo_param.ef_construction: 512
+knn.memory.circuit_breaker.enabled: true
+knn.memory.circuit_breaker.limit: 75%
+
+# Action settings
+action.auto_create_index: true
+action.destructive_requires_name: false
+
+# Plugin settings
+plugins.query.datasources.encryption.masterkey: "defaultMasterKey"
+
+# Thread pool settings
+thread_pool.search.size: 3
+thread_pool.search.queue_size: 1000
+thread_pool.get.size: 1
+thread_pool.get.queue_size: 1000
+thread_pool.write.size: 3
+thread_pool.write.queue_size: 1000

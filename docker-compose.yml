@@ -1,0 +1,240 @@
+version: '3.8'
+
+services:
+  # NestJS Application
+  canvas-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-production}
+    container_name: canvas-orchestration-app
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    networks:
+      - canvas-network
+    volumes:
+      - ./plugins-external:/app/plugins-external
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MongoDB with Vector Search Support
+  mongodb:
+    image: mongo:7.0
+    container_name: canvas-mongodb
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ROOT_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD:-password}
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE:-canvas_orchestration}
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./docker/mongodb/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - canvas-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+
+  # Redis for Caching
+  redis:
+    image: redis:7.2-alpine
+    container_name: canvas-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - canvas-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD:-redis_password}"]
+
+  # OpenSearch for Search Capabilities
+  opensearch:
+    image: opensearchproject/opensearch:2.11.1
+    container_name: canvas-opensearch
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+      - "9300:9300"
+    environment:
+      - cluster.name=canvas-cluster
+      - node.name=canvas-node
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=false"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearch123!}"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+      - ./docker/opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+    networks:
+      - canvas-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "admin:${OPENSEARCH_PASSWORD:-OpenSearch123!}", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # OpenSearch Dashboards (Optional - for development)
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.1
+    container_name: canvas-opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - 'OPENSEARCH_HOSTS=["https://opensearch:9200"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=false"
+    volumes:
+      - ./docker/opensearch/opensearch_dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
+    networks:
+      - canvas-network
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - development
+      - full
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # MongoDB Express (Optional - for development)
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: canvas-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGODB_ROOT_USERNAME:-admin}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGODB_ROOT_PASSWORD:-password}
+      - ME_CONFIG_MONGODB_URL=mongodb://${MONGODB_ROOT_USERNAME:-admin}:${MONGODB_ROOT_PASSWORD:-password}@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=pass
+    networks:
+      - canvas-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - development
+      - full
+
+  # Redis Commander (Optional - for development)
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    container_name: canvas-redis-commander
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=redis:redis:6379:0:${REDIS_PASSWORD:-redis_password}
+    networks:
+      - canvas-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - development
+      - full
+
+networks:
+  canvas-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+  opensearch_data:
+    driver: local
