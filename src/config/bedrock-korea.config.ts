@@ -4,17 +4,17 @@
  */
 
 export interface ModelInfo {
-  id: string;
-  name: string;
-  type: 'text-generation' | 'image-generation' | 'embedding';
-  costPerUnit: number;
-  costUnit: 'token' | 'image' | 'request';
-  maxTokens?: number;
-  supportedTasks: string[];
-  tier: 'basic' | 'standard' | 'premium';
-  latency: 'low' | 'medium' | 'high';
-  status: 'available' | 'limited' | 'unavailable';
-  quotas: ModelQuota;
+  readonly id: string;
+  readonly name: string;
+  readonly type: 'text-generation' | 'image-generation' | 'embedding';
+  readonly costPerUnit: number;
+  readonly costUnit: 'token' | 'image' | 'request';
+  readonly maxTokens?: number;
+  readonly supportedTasks: readonly string[];
+  readonly tier: 'basic' | 'standard' | 'premium';
+  readonly latency: 'low' | 'medium' | 'high';
+  readonly status: 'available' | 'limited' | 'unavailable';
+  readonly quotas: ModelQuota;
 }
 
 export interface ModelQuota {

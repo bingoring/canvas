@@ -4,9 +4,8 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
   InvokeModelWithResponseStreamCommand,
-  ListFoundationModelsCommand,
 } from '@aws-sdk/client-bedrock-runtime';
-import { BedrockClient, GetFoundationModelCommand } from '@aws-sdk/client-bedrock';
+import { BedrockClient, GetFoundationModelCommand, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';
 
 export interface BedrockRequest {
   modelId: string;
@@ -128,7 +127,7 @@ export class BedrockClientService {
   async getAvailableModels(): Promise<any[]> {
     try {
       const command = new ListFoundationModelsCommand({});
-      const response = await this.runtimeClient.send(command);
+      const response = await this.bedrockClient.send(command);
 
       return response.modelSummaries || [];
     } catch (error) {

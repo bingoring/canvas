@@ -12,7 +12,19 @@ export type TaskType =
   | 'conversation'
   | 'summarization'
   | 'sketch-to-image'
-  | 'text-to-image';
+  | 'text-to-image'
+  | 'semantic-search'
+  | 'simple-analysis'
+  | 'complex-analysis'
+  | 'reasoning'
+  | 'image-variation'
+  | 'inpainting'
+  | 'outpainting'
+  | 'text-embedding'
+  | 'image-embedding'
+  | 'multimodal-search'
+  | 'image-similarity'
+  | 'similarity-comparison';
 
 export type QualityRequirement = 'basic' | 'standard' | 'premium';
 export type LatencyRequirement = 'low' | 'medium' | 'high';
