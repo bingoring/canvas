@@ -1,0 +1,282 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: canvas-app-network-policy
+  labels:
+    app: canvas-orchestration
+spec:
+  podSelector:
+    matchLabels:
+      app: canvas-app
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from NGINX Ingress Controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow ingress from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  # Allow egress to MongoDB
+  - to:
+    - podSelector:
+        matchLabels:
+          app: canvas-mongodb
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Allow egress to Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: canvas-redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow egress to OpenSearch
+  - to:
+    - podSelector:
+        matchLabels:
+          app: canvas-opensearch
+    ports:
+    - protocol: TCP
+      port: 9200
+  # Allow egress to external APIs (AWS, OpenAI, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: canvas-mongodb-network-policy
+  labels:
+    app: canvas-orchestration
+spec:
+  podSelector:
+    matchLabels:
+      app: canvas-mongodb
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from Canvas app
+  - from:
+    - podSelector:
+        matchLabels:
+          app: canvas-app
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Allow ingress from other MongoDB pods (replica set communication)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: canvas-mongodb
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Allow ingress from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 27017
+  egress:
+  # Allow egress to other MongoDB pods (replica set communication)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: canvas-mongodb
+    ports:
+    - protocol: TCP
+      port: 27017
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: canvas-redis-network-policy
+  labels:
+    app: canvas-orchestration
+spec:
+  podSelector:
+    matchLabels:
+      app: canvas-redis
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from Canvas app
+  - from:
+    - podSelector:
+        matchLabels:
+          app: canvas-app
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow ingress from other Redis pods (cluster communication)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: canvas-redis
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 16379
+  # Allow ingress from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:
+  # Allow egress to other Redis pods (cluster communication)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: canvas-redis
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 16379
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: canvas-opensearch-network-policy
+  labels:
+    app: canvas-orchestration
+spec:
+  podSelector:
+    matchLabels:
+      app: canvas-opensearch
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from Canvas app
+  - from:
+    - podSelector:
+        matchLabels:
+          app: canvas-app
+    ports:
+    - protocol: TCP
+      port: 9200
+  # Allow ingress from other OpenSearch pods (cluster communication)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: canvas-opensearch
+    ports:
+    - protocol: TCP
+      port: 9200
+    - protocol: TCP
+      port: 9300
+  # Allow ingress from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9200
+  egress:
+  # Allow egress to other OpenSearch pods (cluster communication)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: canvas-opensearch
+    ports:
+    - protocol: TCP
+      port: 9200
+    - protocol: TCP
+      port: 9300
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  labels:
+    app: canvas-orchestration
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress

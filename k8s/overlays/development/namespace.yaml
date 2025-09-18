@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: canvas-orchestration-dev
+  labels:
+    name: canvas-orchestration-dev
+    environment: development
+    app: canvas-orchestration

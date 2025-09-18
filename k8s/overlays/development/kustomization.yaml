@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: canvas-orchestration-development
+
+namespace: canvas-orchestration-dev
+
+resources:
+- ../../base/app
+- ../../base/mongodb
+- ../../base/redis
+- ../../base/opensearch
+- namespace.yaml
+
+patchesStrategicMerge:
+- app-patches.yaml
+- mongodb-patches.yaml
+- redis-patches.yaml
+- opensearch-patches.yaml
+
+configMapGenerator:
+- name: canvas-config
+  behavior: merge
+  literals:
+  - NODE_ENV=development
+  - LOG_LEVEL=debug
+  - enable-swagger=true
+
+secretGenerator:
+- name: canvas-secrets
+  behavior: merge
+  literals:
+  - mongodb-uri=mongodb://admin:devpassword@canvas-mongodb-service:27017/canvas_orchestration_dev?authSource=admin
+  - redis-password=devredispassword
+  - opensearch-password=DevOpenSearch123!
+
+images:
+- name: canvas-orchestration
+  newTag: development
+
+replicas:
+- name: canvas-app
+  count: 1
+- name: canvas-mongodb
+  count: 1
+- name: canvas-redis
+  count: 1
+- name: canvas-opensearch
+  count: 1

@@ -1,0 +1,79 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: canvas-ssd-storage
+  labels:
+    app: canvas-orchestration
+provisioner: kubernetes.io/aws-ebs  # Change based on your cloud provider
+parameters:
+  type: gp3  # AWS EBS gp3 for high performance
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: canvas-shared-storage
+  labels:
+    app: canvas-orchestration
+provisioner: kubernetes.io/aws-efs  # Change based on your cloud provider
+parameters:
+  provisioningMode: efs-utils
+  fileSystemId: fs-12345678  # Replace with your EFS filesystem ID
+  directoryPerms: "0755"
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# For Google Cloud Platform
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: canvas-ssd-storage-gcp
+  labels:
+    app: canvas-orchestration
+    cloud: gcp
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+  replication-type: regional-pd
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# For Azure
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: canvas-ssd-storage-azure
+  labels:
+    app: canvas-orchestration
+    cloud: azure
+provisioner: kubernetes.io/azure-disk
+parameters:
+  skuName: Premium_LRS
+  location: eastus
+  storageaccounttype: Premium_LRS
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# For on-premises with local storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: canvas-local-storage
+  labels:
+    app: canvas-orchestration
+    environment: on-premises
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain

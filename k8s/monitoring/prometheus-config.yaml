@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'canvas-orchestration'
+        environment: 'production'
+
+    rule_files:
+    - "/etc/prometheus/rules/*.yml"
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - alertmanager:9093
+
+    scrape_configs:
+    # Prometheus self-monitoring
+    - job_name: 'prometheus'
+      static_configs:
+      - targets: ['localhost:9090']
+
+    # Kubernetes API server
+    - job_name: 'kubernetes-apiservers'
+      kubernetes_sd_configs:
+      - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+    # Kubernetes nodes
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+      - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+
+    # Kubernetes pods
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+    # Canvas Application
+    - job_name: 'canvas-app'
+      static_configs:
+      - targets: ['canvas-app-service:80']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    # MongoDB
+    - job_name: 'mongodb'
+      static_configs:
+      - targets: ['canvas-mongodb-service:27017']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    # Redis
+    - job_name: 'redis'
+      static_configs:
+      - targets: ['canvas-redis-service:6379']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+
+    # OpenSearch
+    - job_name: 'opensearch'
+      static_configs:
+      - targets: ['canvas-opensearch-service:9200']
+      metrics_path: '/_prometheus/metrics'
+      scrape_interval: 30s
+      scheme: https
+      tls_config:
+        insecure_skip_verify: true
+      basic_auth:
+        username: 'admin'
+        password: 'OpenSearch123!'
+
+    # NGINX Ingress Controller
+    - job_name: 'nginx-ingress'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - ingress-nginx
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        action: keep
+        regex: ingress-nginx
+      - source_labels: [__meta_kubernetes_pod_container_port_number]
+        action: keep
+        regex: 10254
+
+  rules.yml: |
+    groups:
+    - name: canvas-orchestration-alerts
+      rules:
+      # Application Health
+      - alert: CanvasAppDown
+        expr: up{job="canvas-app"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Canvas application is down"
+          description: "Canvas application has been down for more than 5 minutes"
+
+      - alert: CanvasAppHighErrorRate
+        expr: rate(http_requests_total{job="canvas-app",status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in Canvas application"
+          description: "Canvas application error rate is {{ $value }} errors per second"
+
+      # Database Health
+      - alert: MongoDBDown
+        expr: up{job="mongodb"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB is down"
+          description: "MongoDB has been down for more than 5 minutes"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 5 minutes"
+
+      - alert: OpenSearchDown
+        expr: up{job="opensearch"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OpenSearch is down"
+          description: "OpenSearch has been down for more than 5 minutes"
+
+      # Resource Usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Container {{ $labels.container }} CPU usage is above 80%"
+
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Container {{ $labels.container }} memory usage is above 85%"
+
+      # Disk Space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space on {{ $labels.device }} is below 20%"

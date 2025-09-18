@@ -1,0 +1,257 @@
+# Default values for canvas-orchestration
+# This is a YAML-formatted file.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "canvas-ssd-storage"
+
+# Canvas Application Configuration
+app:
+  name: canvas-app
+  image:
+    repository: canvas-orchestration
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 3
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: canvas-api.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: canvas-tls-secret
+        hosts:
+          - canvas-api.yourdomain.com
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - canvas-app
+            topologyKey: kubernetes.io/hostname
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 30
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Environment Configuration
+env:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  PORT: "3000"
+
+# Secrets Configuration
+secrets:
+  create: true
+  mongodb:
+    uri: "mongodb://admin:password@canvas-mongodb-service:27017/canvas_orchestration?authSource=admin"
+    username: "admin"
+    password: "password"
+  redis:
+    url: "redis://:redis_password@canvas-redis-service:6379/0"
+    password: "redis_password"
+  opensearch:
+    url: "https://admin:OpenSearch123!@canvas-opensearch-service:9200"
+    username: "admin"
+    password: "OpenSearch123!"
+  aws:
+    accessKeyId: "YOUR_AWS_ACCESS_KEY_ID"
+    secretAccessKey: "YOUR_AWS_SECRET_ACCESS_KEY"
+  jwt:
+    secret: "your-super-secret-jwt-key"
+
+# Persistent Volume Configuration
+persistence:
+  uploads:
+    enabled: true
+    size: 10Gi
+    accessMode: ReadWriteMany
+    storageClass: "canvas-shared-storage"
+  logs:
+    enabled: true
+    size: 5Gi
+    accessMode: ReadWriteMany
+    storageClass: "canvas-shared-storage"
+  plugins:
+    enabled: true
+    size: 2Gi
+    accessMode: ReadWriteMany
+    storageClass: "canvas-shared-storage"
+
+# MongoDB Configuration
+mongodb:
+  enabled: true
+  replicaCount: 3
+  auth:
+    enabled: true
+    rootUser: admin
+    rootPassword: password
+    database: canvas_orchestration
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: "canvas-ssd-storage"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# Redis Configuration
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+    password: redis_password
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "canvas-ssd-storage"
+    resources:
+      limits:
+        cpu: 250m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "canvas-ssd-storage"
+
+# OpenSearch Configuration
+opensearch:
+  enabled: true
+  clusterName: canvas-cluster
+  nodeGroup: master
+  replicas: 3
+  minimumMasterNodes: 2
+
+  opensearchJavaOpts: "-Xmx2g -Xms2g"
+
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+  persistence:
+    enabled: true
+    size: 100Gi
+    storageClass: "canvas-ssd-storage"
+
+  config:
+    opensearch.yml: |
+      cluster.name: canvas-cluster
+      network.host: 0.0.0.0
+      plugins.security.disabled: false
+      discovery.seed_hosts: ["opensearch-cluster-master-headless"]
+      cluster.initial_master_nodes: ["opensearch-cluster-master-0","opensearch-cluster-master-1","opensearch-cluster-master-2"]
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+
+  prometheus:
+    enabled: true
+    server:
+      persistentVolume:
+        size: 50Gi
+        storageClass: "canvas-ssd-storage"
+
+  grafana:
+    enabled: true
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "canvas-ssd-storage"
+    adminPassword: admin123
+
+# Network Policy Configuration
+networkPolicy:
+  enabled: true
+
+# Resource Quotas and Limits
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    requests.storage: 500Gi
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC Configuration
+rbac:
+  create: true

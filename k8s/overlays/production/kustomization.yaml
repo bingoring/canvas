@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: canvas-orchestration-production
+
+namespace: canvas-orchestration
+
+resources:
+- ../../base/app
+- ../../base/mongodb
+- ../../base/redis
+- ../../base/opensearch
+- ../../base/network-policy.yaml
+- ../../base/resource-quota.yaml
+- ../../base/storage-class.yaml
+- ../../monitoring
+- ../../ingress
+- namespace.yaml
+
+patchesStrategicMerge:
+- app-patches.yaml
+- mongodb-patches.yaml
+- redis-patches.yaml
+- opensearch-patches.yaml
+
+configMapGenerator:
+- name: canvas-config
+  behavior: merge
+  literals:
+  - NODE_ENV=production
+  - LOG_LEVEL=info
+  - enable-swagger=false
+  - enable-rate-limiting=true
+
+secretGenerator:
+- name: canvas-secrets
+  behavior: merge
+  files:
+  - secrets.env
+
+images:
+- name: canvas-orchestration
+  newTag: latest
+
+replicas:
+- name: canvas-app
+  count: 3
+- name: canvas-mongodb
+  count: 3
+- name: canvas-redis
+  count: 3
+- name: canvas-opensearch
+  count: 3

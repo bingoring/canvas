@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: canvas-mongodb
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: mongodb
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: mongodb-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: canvas-ssd-storage
+      resources:
+        requests:
+          storage: 10Gi

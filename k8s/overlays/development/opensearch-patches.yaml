@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: canvas-opensearch
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: opensearch
+        env:
+        - name: discovery.type
+          value: "single-node"
+        - name: "OPENSEARCH_JAVA_OPTS"
+          value: "-Xms512m -Xmx512m"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: opensearch-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: canvas-ssd-storage
+      resources:
+        requests:
+          storage: 20Gi

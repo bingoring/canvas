@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: canvas-orchestration-quota
+  labels:
+    app: canvas-orchestration
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+
+    # Storage resources
+    requests.storage: 500Gi
+    persistentvolumeclaims: "20"
+
+    # Object counts
+    pods: "50"
+    services: "20"
+    secrets: "20"
+    configmaps: "20"
+    deployments.apps: "20"
+    statefulsets.apps: "10"
+    ingresses.networking.k8s.io: "5"
+
+    # Load balancer services
+    services.loadbalancers: "5"
+    services.nodeports: "10"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: canvas-orchestration-limits
+  labels:
+    app: canvas-orchestration
+spec:
+  limits:
+  # Default limits for containers
+  - default:
+      cpu: "1000m"
+      memory: "1Gi"
+      ephemeral-storage: "2Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+      ephemeral-storage: "1Gi"
+    type: Container
+
+  # Limits for pods
+  - max:
+      cpu: "4000m"
+      memory: "8Gi"
+      ephemeral-storage: "10Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+      ephemeral-storage: "512Mi"
+    type: Pod
+
+  # Limits for PVCs
+  - max:
+      storage: "200Gi"
+    min:
+      storage: "1Gi"
+    type: PersistentVolumeClaim
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: canvas-app-pdb
+  labels:
+    app: canvas-app
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: canvas-app
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: canvas-mongodb-pdb
+  labels:
+    app: canvas-mongodb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: canvas-mongodb
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: canvas-redis-pdb
+  labels:
+    app: canvas-redis
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: canvas-redis
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: canvas-opensearch-pdb
+  labels:
+    app: canvas-opensearch
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: canvas-opensearch

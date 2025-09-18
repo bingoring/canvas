@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: canvas-orchestration-base
+
+# Base resources
+resources:
+- base/app/deployment.yaml
+- base/app/service.yaml
+- base/app/configmap.yaml
+- base/app/secret.yaml
+- base/app/pvc.yaml
+- base/app/hpa.yaml
+- base/mongodb/statefulset.yaml
+- base/mongodb/service.yaml
+- base/mongodb/configmap.yaml
+- base/mongodb/secret.yaml
+- base/redis/statefulset.yaml
+- base/redis/service.yaml
+- base/redis/configmap.yaml
+- base/opensearch/statefulset.yaml
+- base/opensearch/service.yaml
+- base/opensearch/configmap.yaml
+- base/network-policy.yaml
+- base/resource-quota.yaml
+- base/storage-class.yaml
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/name: canvas-orchestration
+  app.kubernetes.io/part-of: canvas-platform
+
+# Images
+images:
+- name: canvas-orchestration
+  newTag: latest
+
+# Namespace
+namespace: canvas-orchestration
