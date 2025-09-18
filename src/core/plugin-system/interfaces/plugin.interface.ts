@@ -100,6 +100,9 @@ export interface PluginMetadata {
   homepage?: string;
   dependencies?: string[];
   tags?: string[];
+  category?: 'design' | 'content' | 'development' | 'testing' | 'analysis';
+  capabilities?: string[];
+  config?: Record<string, any>;
 }
 
 /**
@@ -161,6 +164,20 @@ export enum PluginStatus {
   DISABLED = 'disabled',
   ERROR = 'error',
   LOADING = 'loading',
+}
+
+/**
+ * Base plugin class that provides common functionality
+ */
+export abstract class BasePlugin implements IPlugin {
+  abstract readonly name: string;
+  abstract readonly version: string;
+  abstract readonly description: string;
+  abstract readonly dependencies?: string[];
+
+  abstract initialize(): Promise<void>;
+  abstract destroy(): Promise<void>;
+  abstract getCapabilities(): PluginCapability[];
 }
 
 /**

@@ -29,40 +29,64 @@ export function Plugin(metadata: PluginMetadata) {
 }
 
 /**
- * Agent decorator for marking agent classes
+ * Agent decorator for marking agent methods
  * Stores agent definition and capabilities
  */
-export function Agent(definition: Partial<AgentDefinition>) {
-  return function <T extends { new (...args: any[]): {} }>(constructor: T) {
+export function Agent(definition: string | Partial<AgentDefinition>) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    // Convert string to partial definition
+    const agentDef = typeof definition === 'string' 
+      ? { type: definition, name: definition, description: `${definition} capability` }
+      : definition;
+
     // Validate agent definition
-    validateAgentDefinition(definition);
+    validateAgentDefinition(agentDef);
+
+    // Get existing agents or create new array
+    const existingAgents = Reflect.getMetadata(AGENT_METADATA_KEY, target.constructor) || [];
+    existingAgents.push({
+      ...agentDef,
+      methodName: propertyKey,
+    });
 
     // Store agent metadata
-    Reflect.defineMetadata(AGENT_METADATA_KEY, definition, constructor);
+    Reflect.defineMetadata(AGENT_METADATA_KEY, existingAgents, target.constructor);
 
     // Add agent marker
-    Reflect.defineMetadata('isAgent', true, constructor);
+    Reflect.defineMetadata('isAgent', true, target.constructor);
 
-    return constructor;
+    return descriptor;
   };
 }
 
 /**
- * Workflow decorator for marking workflow classes
+ * Workflow decorator for marking workflow methods
  * Stores workflow definition and requirements
  */
-export function Workflow(definition: Partial<WorkflowDefinition>) {
-  return function <T extends { new (...args: any[]): {} }>(constructor: T) {
+export function Workflow(definition: string | Partial<WorkflowDefinition>) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    // Convert string to partial definition
+    const workflowDef = typeof definition === 'string' 
+      ? { type: definition, name: definition, description: `${definition} workflow` }
+      : definition;
+
     // Validate workflow definition
-    validateWorkflowDefinition(definition);
+    validateWorkflowDefinition(workflowDef);
+
+    // Get existing workflows or create new array
+    const existingWorkflows = Reflect.getMetadata(WORKFLOW_METADATA_KEY, target.constructor) || [];
+    existingWorkflows.push({
+      ...workflowDef,
+      methodName: propertyKey,
+    });
 
     // Store workflow metadata
-    Reflect.defineMetadata(WORKFLOW_METADATA_KEY, definition, constructor);
+    Reflect.defineMetadata(WORKFLOW_METADATA_KEY, existingWorkflows, target.constructor);
 
     // Add workflow marker
-    Reflect.defineMetadata('isWorkflow', true, constructor);
+    Reflect.defineMetadata('isWorkflow', true, target.constructor);
 
-    return constructor;
+    return descriptor;
   };
 }
 

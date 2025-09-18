@@ -1,4 +1,26 @@
 /**
+ * Workflow definition interface
+ */
+export interface WorkflowDefinition {
+  type: string;
+  name: string;
+  version: string;
+  description: string;
+  steps: WorkflowStep[];
+  metadata: WorkflowMetadata;
+  schema?: any;
+}
+
+/**
+ * Validation result interface
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors?: string[];
+  warnings?: string[];
+}
+
+/**
  * Base workflow interface for orchestrating multiple agents
  * Implements complex AI workflows with state management
  */
@@ -43,7 +65,7 @@ export interface WorkflowExecutionContext {
   sessionId?: string;
   startTime: Date;
   status: WorkflowExecutionStatus;
-  agents: Map<string, BaseAgent>;
+  agents: Map<string, any>;
   state: Map<string, any>;
   metadata: WorkflowMetadata;
   options?: WorkflowOptions;

@@ -412,7 +412,7 @@ export class PluginRegistryService implements OnModuleInit {
       name: entry.name,
       version: entry.version,
       description: entry.metadata.description,
-      status: entry.status,
+      status: entry.status as PluginStatus,
       capabilities: entry.instance.getCapabilities(),
       agents: agentDefs,
       workflows: workflowDefs,
