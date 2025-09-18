@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Plugin, Agent, Workflow, Capability } from '../../core/plugin-system/decorators/plugin.decorator';
-import { BasePlugin } from '../../core/plugin-system/interfaces/plugin.interface';
+import { BasePlugin, PluginCapability } from '../../core/plugin-system/interfaces/plugin.interface';
 import { DatabaseService } from '../../modules/database/database.service';
 import { WorkflowEngine } from '../../modules/orchestration/services/workflow-engine.service';
 import { ImageGenerationAdapter } from '../../modules/bedrock/adapters/image-generation.adapter';
@@ -15,7 +15,7 @@ import { EmbeddingAdapter } from '../../modules/bedrock/adapters/embedding.adapt
   version: '1.0.0',
   description: 'Canvas image generation and content management plugin',
   author: 'Canvas Team',
-  category: 'content-generation',
+  category: 'content',
   tags: ['image', 'ai', 'generation', 'canvas'],
   dependencies: ['bedrock', 'database', 'orchestration'],
   capabilities: [
@@ -34,6 +34,10 @@ import { EmbeddingAdapter } from '../../modules/bedrock/adapters/embedding.adapt
 })
 @Injectable()
 export class CanvasPlugin extends BasePlugin {
+  readonly name = 'canvas';
+  readonly version = '1.0.0';
+  readonly description = 'Canvas image generation and content management plugin';
+  readonly dependencies = ['bedrock', 'database', 'orchestration'];
   private readonly logger = new Logger(CanvasPlugin.name);
 
   constructor(
@@ -68,7 +72,7 @@ export class CanvasPlugin extends BasePlugin {
         negativePrompt: request.negativePrompt,
         width: request.width || 1024,
         height: request.height || 1024,
-        style: request.style || 'cartoon',
+        style: (request.style as 'meme' | 'cartoon' | 'realistic' | 'anime' | 'illustration') || 'cartoon',
         quality: request.quality || 'standard',
         costPriority: 'quality',
       });
@@ -105,7 +109,7 @@ export class CanvasPlugin extends BasePlugin {
         generationMethod: 'keyword-generation',
         prompt: request.prompt,
         negativePrompt: request.negativePrompt,
-        style: request.style || 'cartoon',
+        style: (request.style as 'meme' | 'cartoon' | 'realistic' | 'anime' | 'illustration') || 'cartoon',
         originalImage: {
           url: `data:image/png;base64,${imageResponse.images[0].base64}`,
           s3Key: '', // Would be set after S3 upload
@@ -175,7 +179,7 @@ export class CanvasPlugin extends BasePlugin {
         base64Image,
         {
           prompt: request.prompt || baseContent.prompt,
-          style: request.style || baseContent.style,
+          style: (request.style || baseContent.style) as 'meme' | 'cartoon' | 'realistic' | 'anime' | 'illustration',
           width: request.width || baseContent.originalImage.dimensions.width,
           height: request.height || baseContent.originalImage.dimensions.height,
           costPriority: 'quality',
@@ -193,7 +197,7 @@ export class CanvasPlugin extends BasePlugin {
           url: `data:image/png;base64,${image.base64}`,
           s3Key: '', // Would be set after S3 upload
           prompt: request.prompt || baseContent.prompt,
-          style: request.style || baseContent.style,
+          style: (request.style || baseContent.style) as 'meme' | 'cartoon' | 'realistic' | 'anime' | 'illustration',
           confidence: 0.95, // Default confidence
           cost: variationResponse.cost / variationResponse.images.length,
           generatedAt: new Date(),
@@ -254,7 +258,7 @@ export class CanvasPlugin extends BasePlugin {
           metadata: {
             likes: content.likes,
             views: content.views,
-            createdAt: content.createdAt,
+            createdAt: (content as any).createdAt,
           },
         })),
         metadata: {
@@ -308,7 +312,12 @@ export class CanvasPlugin extends BasePlugin {
   /**
    * Get content analytics and insights
    */
-  @Capability('analytics')
+  @Capability({
+    name: 'analytics',
+    description: 'Get content analytics and insights',
+    inputSchema: {},
+    outputSchema: {}
+  })
   async getContentAnalytics(request: AnalyticsRequest): Promise<AnalyticsResult> {
     this.logger.log(`Getting content analytics for user: ${request.userId || 'all'}`);
 
@@ -359,6 +368,24 @@ export class CanvasPlugin extends BasePlugin {
         moderatorVersion: '1.0.0',
       },
     };
+  }
+
+  // BasePlugin implementation
+  async initialize(): Promise<void> {
+    this.logger.log('Canvas plugin initialized');
+  }
+
+  async destroy(): Promise<void> {
+    this.logger.log('Canvas plugin destroyed');
+  }
+
+  getCapabilities(): PluginCapability[] {
+    return [
+      { name: 'image-generation', description: 'Generate images from text prompts', category: 'content' },
+      { name: 'image-variation', description: 'Create variations of existing images', category: 'content' },
+      { name: 'similarity-search', description: 'Find similar content', category: 'analysis' },
+      { name: 'content-moderation', description: 'Moderate generated content', category: 'analysis' }
+    ];
   }
 }
 

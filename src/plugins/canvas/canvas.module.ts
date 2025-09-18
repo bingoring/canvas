@@ -5,7 +5,7 @@ import { OrchestrationModule } from '../../modules/orchestration/orchestration.m
 import { CanvasPlugin } from './canvas.plugin';
 import { CanvasController } from './canvas.controller';
 import { CanvasService } from './canvas.service';
-import { CanvasWorkflows } from './workflows/canvas.workflows';
+// import { CanvasWorkflows } from './workflows/canvas.workflows'; // TODO: Create this service
 
 /**
  * Canvas Plugin Module
@@ -20,7 +20,7 @@ import { CanvasWorkflows } from './workflows/canvas.workflows';
   providers: [
     CanvasPlugin,
     CanvasService,
-    CanvasWorkflows,
+    // CanvasWorkflows, // TODO: Create this service
   ],
   controllers: [
     CanvasController,

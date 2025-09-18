@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Plugin, Agent, Workflow } from '../../core/plugin-system/decorators/plugin.decorator';
-import { BasePlugin } from '../../core/plugin-system/interfaces/plugin.interface';
+import { BasePlugin, PluginCapability } from '../../core/plugin-system/interfaces/plugin.interface';
 import { DatabaseService } from '../../modules/database/database.service';
 import { TextGenerationAdapter } from '../../modules/bedrock/adapters/text-generation.adapter';
 import { ImageGenerationAdapter } from '../../modules/bedrock/adapters/image-generation.adapter';
@@ -18,7 +18,7 @@ import { CanvasService } from '../canvas/canvas.service';
   version: '1.0.0',
   description: 'Demo plugin for creating social media posts with Canvas integration',
   author: 'Demo Team',
-  category: 'demo',
+  category: 'content',
   tags: ['demo', 'post', 'social-media', 'everytime'],
   dependencies: ['canvas', 'bedrock', 'database'],
   capabilities: [
@@ -35,6 +35,10 @@ import { CanvasService } from '../canvas/canvas.service';
 })
 @Injectable()
 export class DemoPostCreationPlugin extends BasePlugin {
+  readonly name = 'demo-post-creation';
+  readonly version = '1.0.0';
+  readonly description = 'Demo plugin for creating social media posts with Canvas integration';
+  readonly dependencies = ['canvas', 'bedrock', 'database'];
   private readonly logger = new Logger(DemoPostCreationPlugin.name);
 
   constructor(
@@ -417,6 +421,22 @@ export class DemoPostCreationPlugin extends BasePlugin {
     const removedCollections = ['demo_posts', 'demo_analytics', 'demo_trends'];
     this.logger.log(`Removed demo collections: ${removedCollections.join(', ')}`);
     return removedCollections;
+  }
+
+  // BasePlugin implementation
+  async initialize(): Promise<void> {
+    this.logger.log('Demo post creation plugin initialized');
+  }
+
+  async destroy(): Promise<void> {
+    this.logger.log('Demo post creation plugin destroyed');
+  }
+
+  getCapabilities(): PluginCapability[] {
+    return [
+      { name: 'social-post-generation', description: 'Generate social media posts', category: 'content' },
+      { name: 'trending-analysis', description: 'Analyze trending topics', category: 'analysis' }
+    ];
   }
 }
 
