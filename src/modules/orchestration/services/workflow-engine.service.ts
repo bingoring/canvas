@@ -298,7 +298,7 @@ export class WorkflowEngine {
         stack: error.stack,
       };
 
-      execution.errors.push(executionError);
+      execution.executionErrors.push(executionError);
 
       this.eventEmitter.emit('node.failed', { node, execution, error: executionError });
 
@@ -377,7 +377,7 @@ export class WorkflowEngine {
       input: request.input,
       state: { ...request.input },
       executedNodes: [],
-      errors: [],
+      executionErrors: [],
       metrics: {
         totalCost: 0,
         nodeMetrics: {},
@@ -431,13 +431,13 @@ export class WorkflowEngine {
       stack: error.stack,
     };
 
-    execution.errors.push(executionError);
+    execution.executionErrors.push(executionError);
 
     await this.databaseService.updateWorkflowExecution(execution.id, {
       status: execution.status,
       endTime: execution.endTime,
       duration: execution.duration,
-      errors: execution.errors,
+      executionErrors: execution.executionErrors,
     });
 
     this.eventEmitter.emit('workflow.failed', { execution, error: executionError });

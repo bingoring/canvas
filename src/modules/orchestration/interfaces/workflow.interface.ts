@@ -84,6 +84,8 @@ export interface ErrorAction {
 export interface WorkflowExecution {
   id: string;
   workflowId: string;
+  userId?: string;
+  sessionId?: string;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
   startTime: Date;
   endTime?: Date;
@@ -93,8 +95,17 @@ export interface WorkflowExecution {
   state: Record<string, any>;
   currentNode?: string;
   executedNodes: string[];
-  errors: ExecutionError[];
+  executionErrors: ExecutionError[];
   metrics: ExecutionMetrics;
+  options?: {
+    timeout?: number;
+    retries?: number;
+    parallel?: boolean;
+    failFast?: boolean;
+    saveIntermediateResults?: boolean;
+    enableCaching?: boolean;
+    priority?: 'low' | 'normal' | 'high';
+  };
 }
 
 export interface ExecutionError {

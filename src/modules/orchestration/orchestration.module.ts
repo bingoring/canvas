@@ -5,7 +5,7 @@ import { DatabaseModule } from '../database/database.module';
 import { WorkflowEngine } from './services/workflow-engine.service';
 import { AgentOrchestrator } from './services/agent-orchestrator.service';
 import { StateManager } from './services/state-manager.service';
-import { WorkflowBuilder } from './builders/workflow-builder.service';
+// import { WorkflowBuilder } from './builders/workflow-builder.service'; // TODO: Create this service
 import { AgentFactory } from './factories/agent-factory.service';
 import { ExecutionMonitor } from './services/execution-monitor.service';
 
@@ -23,7 +23,7 @@ import { ExecutionMonitor } from './services/execution-monitor.service';
     WorkflowEngine,
     AgentOrchestrator,
     StateManager,
-    WorkflowBuilder,
+    // WorkflowBuilder, // TODO: Create this service
     AgentFactory,
     ExecutionMonitor,
   ],
@@ -31,7 +31,7 @@ import { ExecutionMonitor } from './services/execution-monitor.service';
     WorkflowEngine,
     AgentOrchestrator,
     StateManager,
-    WorkflowBuilder,
+    // WorkflowBuilder, // TODO: Create this service
     AgentFactory,
     ExecutionMonitor,
   ],
