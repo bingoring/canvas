@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { DemoPostCreationPlugin, SocialPostRequest, TrendingPostsRequest } from './demo-post.plugin';
+import { CreateSocialPostDto, GenerateTrendingPostsDto } from './dto/demo-post.dto';
 
 /**
  * Demo Post Creation Controller - DEMO FEATURE (EASILY REMOVABLE)
@@ -393,22 +394,4 @@ export class DemoPostController {
       );
     }
   }
-}
-
-// DTOs for Demo Post Creation
-export class CreateSocialPostDto {
-  topic: string;
-  platform: 'everytime' | 'instagram' | 'twitter';
-  imageStyle?: string;
-  userId?: string;
-  sessionId?: string;
-  isPublic?: boolean;
-  includeHashtags?: boolean;
-}
-
-export class GenerateTrendingPostsDto {
-  platform: 'everytime' | 'instagram' | 'twitter';
-  count?: number;
-  userId?: string;
-  sessionId?: string;
 }
