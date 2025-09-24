@@ -19,29 +19,20 @@ import { DatabaseService } from './database.service';
       useFactory: async (configService: ConfigService) => {
         const uri = configService.get<string>('MONGODB_URI') ||
                    configService.get<string>('MONGODB_ATLAS_URI') ||
-                   'mongodb://localhost:27017/canvas_orchestration';
+                   'mongodb://mongo:27017/canvas_ai';
 
         return {
           uri,
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
           // Connection pool optimization
           maxPoolSize: 10,
           minPoolSize: 2,
           maxIdleTimeMS: 30000,
           serverSelectionTimeoutMS: 5000,
           socketTimeoutMS: 45000,
-          // Performance optimizations
-          bufferMaxEntries: 0,
-          bufferCommands: false,
           // Additional options for production
           retryWrites: true,
           retryReads: true,
           readPreference: 'primary',
-          // Compression
-          compressors: ['snappy', 'zlib'],
-          // Monitoring
-          monitorCommands: true,
         };
       },
       inject: [ConfigService],

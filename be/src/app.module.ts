@@ -43,6 +43,7 @@ import { DemoPostCreationModule } from './plugins/demo-post-creation/demo-post.m
     // Demo post creation plugin (REMOVABLE AFTER DEMO)
     DemoPostCreationModule,
 
+
     // Core plugin system
     PluginSystemModule,
   ],
