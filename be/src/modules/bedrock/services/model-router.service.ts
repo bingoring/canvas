@@ -256,6 +256,16 @@ export class ModelRouterService {
         latency: 'low',
         quality: 'standard',
       },
+      {
+        id: 'amazon.nova-canvas-v1:0',
+        name: 'Nova Canvas',
+        type: 'image',
+        costPerImage: 0.008, // Estimated cost - verify with AWS pricing
+        capabilities: ['text-to-image'], // Primary capability confirmed
+        availability: 'high',
+        latency: 'medium', // Estimated - verify with actual performance
+        quality: 'premium',
+      },
     );
 
     // Embedding Models
