@@ -19,80 +19,65 @@ import {
   ImageVariationRequest,
   SimilaritySearchRequest,
 } from './canvas.plugin';
+import {
+  CreateVariationsDto,
+  SimilaritySearchDto,
+  GenerateTextDto,
+  GenerateImageDto,
+  SuccessResponseDto,
+  ErrorResponseDto,
+} from './dto/canvas.dto';
 
 /**
  * Canvas Controller - REST API endpoints for Canvas functionality
  * Provides comprehensive image generation and content management APIs
  */
 @ApiTags('Canvas')
-@Controller('api/canvas')
+@Controller('canvas')
 export class CanvasController {
   private readonly logger = new Logger(CanvasController.name);
 
   constructor(private canvasService: CanvasService) {}
 
   /**
-   * Generate image from text prompt
+   * Generate image from text prompt or input image
    */
-  @Post('generate')
+  @Post('generate/image')
   @ApiOperation({
-    summary: 'Generate image from text prompt',
-    description: 'Creates a new image using AI based on the provided text prompt and style preferences',
+    summary: 'Generate image from text prompt or input image',
+    description: 'Creates a new image using AI based on the provided text prompt and style preferences. Supports text-to-image and image-to-image generation.',
   })
   @ApiResponse({
     status: 201,
     description: 'Image generated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        contentId: { type: 'string' },
-        images: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              base64: { type: 'string' },
-              seed: { type: 'number' },
-            },
-          },
-        },
-        metadata: {
-          type: 'object',
-          properties: {
-            width: { type: 'number' },
-            height: { type: 'number' },
-            cost: { type: 'number' },
-            modelUsed: { type: 'string' },
-            embeddings: { type: 'boolean' },
-            stored: { type: 'boolean' },
-          },
-        },
-      },
-    },
+    type: SuccessResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Invalid request parameters' })
-  @ApiResponse({ status: 500, description: 'Image generation failed' })
-  async generateImage(@Body() request: CreateImageDto) {
+  @ApiResponse({ status: 400, description: 'Invalid request parameters', type: ErrorResponseDto })
+  @ApiResponse({ status: 500, description: 'Image generation failed', type: ErrorResponseDto })
+  async generateImage(@Body() request: GenerateImageDto) {
     this.logger.log(`Generate image request: ${request.prompt.substring(0, 50)}...`);
 
     try {
+      // Set default style to 이모티콘 if not provided
+      const style = request.style || '이모티콘';
+
       const result = await this.canvasService.createImage({
         prompt: request.prompt,
         negativePrompt: request.negativePrompt,
-        style: request.style,
-        width: request.width,
-        height: request.height,
-        quality: request.quality,
+        style: style,
+        width: request.width || 1024,
+        height: request.height || 1024,
+        quality: request.quality || 'standard',
         userId: request.userId,
         sessionId: request.sessionId,
-        isPublic: request.isPublic,
-        generateEmbeddings: request.generateEmbeddings,
+        isPublic: request.isPublic !== undefined ? request.isPublic : true,
+        generateEmbeddings: request.generateEmbeddings !== undefined ? request.generateEmbeddings : true,
       });
 
       return {
         success: true,
         data: result,
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       this.logger.error('Image generation failed', error);
@@ -101,6 +86,53 @@ export class CanvasController {
           success: false,
           message: error.message,
           error: 'IMAGE_GENERATION_FAILED',
+          timestamp: new Date().toISOString(),
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Generate text response from prompt
+   */
+  @Post('generate/text')
+  @ApiOperation({
+    summary: 'Generate text response from prompt',
+    description: 'Creates a text response using AI based on the provided text prompt',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Text generated successfully',
+    type: SuccessResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid request parameters', type: ErrorResponseDto })
+  @ApiResponse({ status: 500, description: 'Text generation failed', type: ErrorResponseDto })
+  async generateText(@Body() request: GenerateTextDto) {
+    this.logger.log(`Generate text request: ${request.prompt.substring(0, 50)}...`);
+
+    try {
+      const result = await this.canvasService.createText({
+        prompt: request.prompt,
+        userId: request.userId,
+        sessionId: request.sessionId,
+        maxLength: request.maxLength,
+        temperature: request.temperature,
+      });
+
+      return {
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error('Text generation failed', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message,
+          error: 'TEXT_GENERATION_FAILED',
+          timestamp: new Date().toISOString(),
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
@@ -596,31 +628,4 @@ export class CanvasController {
       );
     }
   }
-}
-
-// DTOs for request validation
-export class CreateImageDto {
-  prompt: string;
-  negativePrompt?: string;
-  style?: string;
-  width?: number;
-  height?: number;
-  quality?: 'standard' | 'premium';
-  userId?: string;
-  sessionId?: string;
-  isPublic?: boolean;
-  generateEmbeddings?: boolean;
-}
-
-export class CreateVariationsDto {
-  prompt?: string;
-  style?: string;
-  width?: number;
-  height?: number;
-  variationCount?: number;
-}
-
-export class SimilaritySearchDto {
-  query: string;
-  limit?: number;
 }

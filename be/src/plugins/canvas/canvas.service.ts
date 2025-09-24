@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CanvasPlugin } from './canvas.plugin';
 import { DatabaseService } from '../../modules/database/database.service';
+import { TextGenerationAdapter, TextGenerationRequest, TextGenerationResponse } from '../../modules/bedrock/adapters/text-generation.adapter';
 import {
   ImageGenerationRequest,
   ImageGenerationResult,
@@ -45,6 +46,26 @@ export interface ContentListResponse {
   hasMore: boolean;
 }
 
+export interface TextGenerationServiceRequest {
+  prompt: string;
+  userId?: string;
+  sessionId?: string;
+  maxLength?: number;
+  temperature?: number;
+}
+
+export interface TextGenerationServiceResult {
+  text: string;
+  metadata: {
+    cost: number;
+    modelUsed: string;
+    inputTokens: number;
+    outputTokens: number;
+    duration: number;
+    createdAt: Date;
+  };
+}
+
 /**
  * Canvas Service - Business logic layer for Canvas functionality
  * Provides high-level operations for image generation and content management
@@ -56,6 +77,7 @@ export class CanvasService {
   constructor(
     private canvasPlugin: CanvasPlugin,
     private databaseService: DatabaseService,
+    private textGenerationAdapter: TextGenerationAdapter,
   ) {
     this.logger.log('Canvas service initialized');
   }
@@ -79,6 +101,44 @@ export class CanvasService {
       return result;
     } catch (error) {
       this.logger.error('Image creation failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate text response with automatic content management
+   */
+  async createText(request: TextGenerationServiceRequest): Promise<TextGenerationServiceResult> {
+    this.logger.log(`Creating text response: ${request.prompt.substring(0, 50)}...`);
+
+    try {
+      // Generate text using text generation adapter
+      const result = await this.textGenerationAdapter.generateText({
+        prompt: request.prompt,
+        maxTokens: request.maxLength,
+        temperature: request.temperature || 0.7,
+        costPriority: 'cost',
+      });
+
+      // Format response
+      const textResult: TextGenerationServiceResult = {
+        text: result.text,
+        metadata: {
+          cost: result.cost,
+          modelUsed: result.modelUsed,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          duration: result.duration,
+          createdAt: new Date(),
+        },
+      };
+
+      // Log generation for analytics
+      await this.logTextGeneration(request, textResult);
+
+      return textResult;
+    } catch (error) {
+      this.logger.error('Text creation failed', error);
       throw error;
     }
   }
@@ -414,6 +474,26 @@ export class CanvasService {
       style: request.style,
       cost: result.metadata.cost,
       modelUsed: result.metadata.modelUsed,
+    });
+  }
+
+  /**
+   * Log text generation for analytics
+   */
+  private async logTextGeneration(
+    request: TextGenerationServiceRequest,
+    result: TextGenerationServiceResult,
+  ): Promise<void> {
+    // This would typically log to analytics service
+    this.logger.debug('Text generation logged', {
+      userId: request.userId,
+      sessionId: request.sessionId,
+      promptLength: request.prompt.length,
+      responseLength: result.text.length,
+      cost: result.metadata.cost,
+      modelUsed: result.metadata.modelUsed,
+      inputTokens: result.metadata.inputTokens,
+      outputTokens: result.metadata.outputTokens,
     });
   }
 }
